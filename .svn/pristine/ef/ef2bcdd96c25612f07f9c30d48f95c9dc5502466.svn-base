@@ -1,0 +1,120 @@
+//
+//  BottomTabBar.m
+//  woqifu
+//
+//  Created by Rain on 13-1-23.
+//  Copyright (c) 2013年 woqifu. All rights reserved.
+//
+
+#import "BottomTabBar.h"
+
+@implementation BottomTabBar
+@synthesize delegate;
+- (id)initWithFrame:(CGRect)frame
+{
+    self = [super initWithFrame:frame];
+    if (self) {
+        self.backgroundColor=[UIColor clearColor];
+        imgBg=[[UIImageView alloc] initWithImage:[UIImage imageNamed:@"toolbar_bg"]];
+        imgBg.frame=CGRectMake(0, 0, kDeviceWidth, 44);
+        [self addSubview:imgBg];
+        
+        [self initChildren];
+    }
+    return self;
+}
+
+-(void)initChildren{
+    arrNormal=[[NSArray alloc] initWithObjects:
+                        @"toolbar_icon_menu",
+                        @"toolbar_icon_photo", 
+                        @"toolbar_icon_friends",
+                        nil];
+    arrHighLighted=[[NSArray alloc] initWithObjects:
+                        @"toolbar_icon_menu_h", 
+                        @"toolbar_icon_photo_h", 
+                        @"toolbar_icon_friends_h",
+                        nil];
+    NSArray* arrLeft=[[NSArray alloc] initWithObjects:@"10", @"92", @"264", nil];
+    for (int k=0; k<arrLeft.count; k++) {
+        UIButton *btn=[UIButton buttonWithType:UIButtonTypeCustom];
+        [btn setImage:[UIImage imageNamed:[arrNormal objectAtIndex:k]] forState:UIControlStateNormal];
+        [btn setImage:[UIImage imageNamed:[arrHighLighted objectAtIndex:k]] forState:UIControlStateHighlighted];
+        [btn addTarget:self action:@selector(clickTab:) forControlEvents:UIControlEventTouchUpInside];
+        btn.tag=100+k;
+        int left=[[arrLeft objectAtIndex:k] integerValue];
+        if (k==1) {
+            btn.frame=CGRectMake(left,-14,136,58);
+        }
+        else{
+            btn.frame=CGRectMake(left,2,46,44);
+        }
+        [self addSubview:btn];
+        
+        UIImageView *badge=[[UIImageView alloc] initWithFrame:CGRectMake(30, 2, 12, 12)];
+        badge.image=[UIImage imageNamed:@"tabbar_badge.png"];
+        [badge setHidden:YES];
+        badge.tag=99;
+        [btn addSubview:badge];
+    }
+    
+    UIButton *btnLogin=[UIButton buttonWithType:UIButtonTypeCustom];
+    [btnLogin setBackgroundImage:[UIImage imageNamed:@"header_btn_login_off"] forState:UIControlStateNormal];
+    [btnLogin setBackgroundImage:[UIImage imageNamed:@"header_btn_login_on"] forState:UIControlStateHighlighted];
+    [btnLogin setTitle:@"登录" forState:UIControlStateNormal];
+    btnLogin.titleLabel.font=[UIFont systemFontOfSize:15.0];
+    [btnLogin addTarget:self action:@selector(clickTab:) forControlEvents:UIControlEventTouchUpInside];
+    btnLogin.tag=109;
+    btnLogin.frame=CGRectMake(125,2,70,44);
+    [self addSubview:btnLogin];
+}
+
+-(void)resetBar:(BOOL)hasLogined{
+    
+    UIButton *btnLogin=(UIButton*)[self viewWithTag:109];
+    btnLogin.hidden=hasLogined;
+    for (int k=0; k<3; k++) {
+        UIButton *btn=(UIButton*)[self viewWithTag:100+k];
+        btn.hidden=!hasLogined;
+        //            [btn setImage:[UIImage imageNamed:[arrNormal objectAtIndex:k]] forState:UIControlStateNormal];
+        //            [btn setImage:[UIImage imageNamed:[arrHighLighted objectAtIndex:k]] forState:UIControlStateHighlighted];
+    }
+//    imgBg.hidden=!hasLogined;
+    if (hasLogined) {
+ 
+    }
+    else{
+ 
+    } 
+}
+
+-(void)clickTab:(UIButton*)sender{
+    int tag=sender.tag;
+    [self selectItemAtIndex:tag-100];
+}
+
+- (void) selectItemAtIndex:(NSInteger)index{
+	/*
+    if (index<arrNormal.count && preSelectIndex<arrNormal.count) {
+        UIButton *prebtn=(UIButton*)[self viewWithTag:100+preSelectIndex];
+        [prebtn setImage:[UIImage imageNamed:[arrNormal objectAtIndex:preSelectIndex]] forState:UIControlStateNormal];
+        [prebtn setImage:[UIImage imageNamed:[arrHighLighted objectAtIndex:preSelectIndex]] forState:UIControlStateHighlighted];
+
+        UIButton *btn=(UIButton*)[self viewWithTag:100+index];
+        [btn setImage:[UIImage imageNamed:[arrHighLighted objectAtIndex:index]] forState:UIControlStateNormal];
+        [btn setImage:[UIImage imageNamed:[arrHighLighted objectAtIndex:index]] forState:UIControlStateHighlighted];
+        
+    }*/
+    preSelectIndex=index;
+    
+    if (self.delegate && [self.delegate conformsToProtocol:@protocol(BottomTabBarDelegate)]){
+        [self.delegate clickBottomTabBar:index];
+    }
+}
+
+-(void)setBadgeIcon:(NSInteger)index isOn:(BOOL)isOn{
+    UIButton *btn=(UIButton*)[self viewWithTag:100+index];
+    UIView* badge=[btn viewWithTag:99];
+    [badge setHidden:!isOn];
+}
+@end

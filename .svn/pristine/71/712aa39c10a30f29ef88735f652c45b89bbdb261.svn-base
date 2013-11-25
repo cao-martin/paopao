@@ -1,0 +1,27 @@
+//
+//  NewSViewController.h
+//  charmgram
+//
+//  Created by martin on 13-7-31.
+//  Copyright (c) 2013年 Flashfresh. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "UserInfo.h"
+#import "UserCell.h"
+@interface NewSViewController : UIViewController<UITableViewDataSource,UITableViewDelegate>
+{
+    UILabel* lblFollow;
+    UILabel* lblFans;
+    UIImageView* imgBg;
+    UIButton* btnSeg;
+    
+    UITableView* tbFollow;
+    NSMutableArray* arrFollow;
+    UITableView* tbFan;
+    NSMutableArray* arrFan;
+    
+    int selectedIndex;
+	
+}
+@end

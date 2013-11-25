@@ -1,0 +1,37 @@
+//
+//  PrivateImage.h
+//  charmgram
+//
+//  Created by Rui Wei on 13-5-10.
+//  Copyright (c) 2013年 Flashfresh. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+
+
+@interface PrivateImage : NSObject
+
+@property (nonatomic,assign)int UserId;
+@property (nonatomic,assign)int ImageId;
+@property (nonatomic,assign)int RowIndex;
+@property (nonatomic,assign)int ColIndex;
+@property (nonatomic,assign)int Second;
+@property (nonatomic, assign)double Distance;
+@property (nonatomic,assign)int GiftCount;
+@property (nonatomic,assign)int ViewCount;
+@property (nonatomic, assign)int LikeCount;
+@property (nonatomic, assign)int CommentCount;
+@property (nonatomic, assign)BOOL isLiked;
+@property (nonatomic,assign)PrivateImageState State;
+@property (nonatomic, retain)NSString* ThumbUrl;
+@property (nonatomic, retain)NSString* ImageUrl;
+@property (nonatomic, retain)NSString* UserName;
+@property (nonatomic, retain)NSString* AvatarUrl;
+@property (nonatomic, retain)NSString* CreatedDate;
+@property (nonatomic, retain)NSMutableArray* arrLike;
+@property (nonatomic, retain)NSMutableArray* arrGift;
+-(id)init;
+-(id)initWithDict:(NSDictionary*)dict;
+-(void)likeMe;
+@end

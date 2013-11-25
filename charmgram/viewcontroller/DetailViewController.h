@@ -1,0 +1,48 @@
+//
+//  DetailViewController.h
+//  charmgram
+//
+//  Created by Rui Wei on 13-4-10.
+//  Copyright (c) 2013年 Flashfresh. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "PrivateImage.h"
+#import "UserInfo.h"
+#import "CommentInfo.h"
+#import "CommentCell.h"
+
+@interface DetailViewController : UIViewController<UITableViewDataSource,UITableViewDelegate,UIActionSheetDelegate,UITextViewDelegate,SinaWeiboDelegate,SinaWeiboRequestDelegate>
+{
+	UILabel* lblTitle;
+	UITableView* tbContent;
+	UIImageView* imgSky;
+	UIImageView* imgAvatar;
+    UIButton* btnLike;
+    UILabel* lblName;
+	UITextView* tvComment;
+	UIImageView* toolbar;
+	UIView *commentMask;
+	UIImageView* tvCommentBg;
+	UIView* likeBar;
+	UILabel* lblCommentCount;
+	UIImageView* imgPhoto;
+	UILabel* lblCreateDate;
+	int keyboardTop;
+	UILabel *lblTip;
+	UILabel* lblTimer;
+    UIImageView* imgBubble;
+	
+	UIView* bgPreview;
+    UIImageView *imgPreview;
+	UIButton *btnTimer;
+    UIView *viewBg;
+    UILabel *lblViewCount;
+    UIView* header;
+    UILabel *lblNickName;
+}
+@property (nonatomic,retain)NSTimer* timerCountDown;
+
+@property (nonatomic,strong)PrivateImage* curInfo;
+@property(nonatomic,assign)id bubbleDelegate;
+@end

@@ -1,0 +1,405 @@
+//
+//  FindFriendViewController.m
+//  charmgram
+//
+//  Created by martin on 13-8-23.
+//  Copyright (c) 2013年 Flashfresh. All rights reserved.
+//
+
+#import "FindFriendViewController.h"
+#import <AddressBook/AddressBook.h>
+@interface FindFriendViewController ()
+
+@end
+
+@implementation FindFriendViewController
+
+- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
+{
+    self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
+    if (self) {
+        // Custom initialization
+    }
+    return self;
+}
+
+-(void)viewWillAppear:(BOOL)animated{
+    [[AppDelegate App]sendAppContent:WXSceneSession withTitle:@"我在玩泡泡，超好玩的，赶紧一起来吧" withContent:@"http://baidu.com"];
+}
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+	self.view.backgroundColor=[UIColor colorWithRed:(43/255.0f) green:(45/255.0f) blue:(52/255.0f) alpha:1.0f];
+    //    imgBg=[[UIImageView alloc] initWithImage:[UIImage imageNamed:@"rearview_bg"]];
+    //    imgBg.frame=CGRectMake(kDeviceWidth-kFriendPanelWidth, 0, kFriendPanelWidth+1, kDeviceHeight);
+    //    imgBg.contentMode=UIViewContentModeScaleAspectFill;
+    //    imgBg.userInteractionEnabled=YES;
+    //    [self.view addSubview:imgBg];
+    [self initSearchBar];
+    [self initSegment];
+    
+    //    int left=kDeviceWidth-kFriendPanelWidth;
+    
+    
+    tbFollow=[[UITableView alloc] initWithFrame:CGRectMake(0, 88, kDeviceWidth, kDeviceHeight-154)];
+    tbFollow.dataSource=self;
+    tbFollow.delegate=self;
+    tbFollow.backgroundColor=[UIColor clearColor];
+    tbFollow.separatorStyle=UITableViewCellSeparatorStyleNone;
+    [self.view addSubview:tbFollow];
+    
+    tbFan=[[UITableView alloc] initWithFrame:CGRectMake(0, 88, kDeviceWidth, kDeviceHeight-154)];
+    tbFan.dataSource=self;
+    tbFan.delegate=self;
+    tbFan.backgroundColor=[UIColor clearColor];
+    tbFan.separatorStyle=UITableViewCellSeparatorStyleNone;
+    [self.view addSubview:tbFan];
+    tbFan.hidden=YES;
+    
+    UIImageView *topSplit=[[UIImageView alloc] initWithFrame:CGRectMake(0, 44, kDeviceWidth, 3)];
+    topSplit.image=[UIImage imageNamed:@"view_shadow_poi_top"];
+    [self.view addSubview:topSplit];
+    
+    
+}
+
+-(void)initSearchBar{
+	UIView* searchBar=[[UIView alloc] initWithFrame:CGRectMake(0, 0, kDeviceWidth, 44)];
+	searchBar.backgroundColor=[UIColor clearColor];
+	
+	UIImageView* imgSearchBg=[[UIImageView alloc] initWithImage:[[UIImage imageNamed:@"search_bg_rear"] stretchableImageWithLeftCapWidth:15.0 topCapHeight:0.0 ]];
+	imgSearchBg.frame=CGRectMake(10, 1, kDeviceWidth-20, 42);
+	imgSearchBg.userInteractionEnabled = YES;
+	UIImageView* imgSearchIcon=[[UIImageView alloc] initWithImage:[UIImage imageNamed:@"search_icon_rear"]];
+	imgSearchIcon.frame=CGRectMake(8, 13, 17, 17);
+	
+    UIButton *btnCancel=[UIButton buttonWithType:UIButtonTypeCustom];
+    [btnCancel setBackgroundImage:[UIImage imageNamed:@"header_btn_back_off"] forState:UIControlStateNormal];
+    [btnCancel setBackgroundImage:[UIImage imageNamed:@"header_btn_back_on"] forState:UIControlStateHighlighted];
+    btnCancel.frame=CGRectMake(8, 0, 54,44);
+    [btnCancel addTarget:self action:@selector(clickBack) forControlEvents:UIControlEventTouchUpInside];
+    [imgSearchBg addSubview:btnCancel];
+	
+	[imgSearchBg addSubview:imgSearchIcon];
+	[searchBar addSubview:imgSearchBg];
+	[self.view addSubview:searchBar];
+    arrFollow=[[NSMutableArray alloc] initWithCapacity:0];
+    arrFan=[[NSMutableArray alloc] initWithCapacity:0];
+}
+
+-(void)initSegment{
+    UIImageView* imgSegBg=[[UIImageView alloc] initWithImage:[UIImage imageNamed:@"segmental_rear_bg"]];
+    imgSegBg.frame=CGRectMake((kDeviceWidth-235)/2, 49, 235, 33);
+    imgSegBg.userInteractionEnabled=YES;
+    UITapGestureRecognizer* tapSeg=[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(clickSegment)];
+    tapSeg.numberOfTouchesRequired=1;
+    tapSeg.numberOfTapsRequired=1;
+    [imgSegBg addGestureRecognizer:tapSeg];
+    
+    UIView* imgSegSp=[[UIView alloc] initWithFrame:CGRectMake(117, 1, 1, 31)];
+    imgSegSp.backgroundColor=[UIColor colorWithRed:18/255.0 green:20/255.0 blue:27/255.0 alpha:1.0];
+    
+    lblFollow=[[UILabel alloc] initWithFrame:CGRectMake(1, 1, 116, 31)];
+    lblFollow.textColor=[UIColor whiteColor];
+    lblFollow.backgroundColor=[UIColor clearColor];
+    lblFollow.font=[UIFont boldSystemFontOfSize:16.0];
+    lblFollow.textAlignment=UITextAlignmentCenter;
+    lblFollow.text=@"消息";
+    
+    lblFans=[[UILabel alloc] initWithFrame:CGRectMake(118, 1, 116, 31)];
+    lblFans.textColor=[UIColor whiteColor];
+    lblFans.backgroundColor=[UIColor clearColor];
+    lblFans.font=[UIFont boldSystemFontOfSize:16.0];
+    lblFans.textAlignment=UITextAlignmentCenter;
+    lblFans.text=@"私信";
+    
+    //    UIView* imgHL=[[UIView alloc] initWithFrame:CGRectMake(1, 1, 116, 31)];
+    //    imgHL.backgroundColor=[UIColor colorWithPatternImage:[UIImage imageNamed:@"segmental_rear_btn_h"]];
+    
+    btnSeg=[UIButton buttonWithType:UIButtonTypeCustom];
+    [btnSeg setBackgroundImage:[UIImage imageNamed:@"segmental_rear_btn_h"] forState:UIControlStateNormal];
+    btnSeg.frame=CGRectMake(1, 1, 116, 31);
+    [btnSeg addTarget:self action:@selector(clickSegment) forControlEvents:UIControlEventTouchUpInside];
+    
+    [self.view addSubview:imgSegBg];
+    [imgSegBg addSubview:lblFollow];
+    [imgSegBg addSubview:lblFans];
+    [imgSegBg addSubview:btnSeg];
+    [imgSegBg addSubview:imgSegSp];
+    
+    /**
+     for (int k=0; k<40; k++) {
+     UserInfo *item=[[UserInfo alloc] init];
+     item.UserId=1000+k;
+     item.UserName=[NSString stringWithFormat:@"用户名%d",item.UserId];
+     item.AvatarURL=[NSString stringWithFormat:@"avatar%d.jpg",item.UserId%12];
+     [arrUser addObject:item];
+     }
+	 */
+}
+
+-(void)viewDidAppear:(BOOL)animated{
+    
+	DLog(@"");
+	[super viewDidAppear:animated];
+}
+
+-(void)refreshData{
+	if ([AppHelper isValidatedUser]) {
+        if (selectedIndex==0) {
+            [self loadFollowFromWeb];
+        }
+		else{
+            [self loadFanFromWeb];
+        }
+	}
+}
+-(void)ReadPhoneBook
+{
+    ABAddressBookRef addressBook = ABAddressBookCreate();//定义通讯录名字为addressbook
+    CFArrayRef contacts = ABAddressBookCopyArrayOfAllPeople(addressBook);//将通讯录中的信息用数组方式读出
+    CFIndex nPeople = ABAddressBookGetPersonCount(addressBook);//获取通讯录中联系人
+    
+    NSMutableArray *iphoneContactList = [[NSMutableArray alloc] initWithCapacity:0];
+    for (int i = 0; i < nPeople; i++)
+    {
+        
+       // IphoneContact * iphoneContact = [[IphoneContact alloc] init];
+        
+        NSData *imageData = [[NSData alloc] init];
+        NSString *address = [[NSString alloc] init];
+        
+        
+        ABRecordRef person = CFArrayGetValueAtIndex(contacts, i);//取出某一个人的信息
+        NSInteger lookupforkey =(NSInteger)ABRecordGetRecordID(person);//读取通讯录中联系人的唯一标识
+        NSDate * createDate = (__bridge NSDate *)ABRecordCopyValue(person, kABPersonCreationDateProperty);// 读取通讯录中联系人的创建日期
+        NSDateFormatter* formatter = [[NSDateFormatter alloc] init];
+        [formatter setDateFormat:@"yyyy-MM-dd hh:mm:ss"];
+        NSString* birthDay = [formatter stringFromDate:createDate];
+        
+        
+        
+        NSString *createDate1 = [birthDay stringByReplacingOccurrencesOfString:@"-" withString:@""];
+        NSString *createDate2 = [createDate1 stringByReplacingOccurrencesOfString:@":" withString:@""];
+        NSString *createDate3 = [createDate2 stringByReplacingOccurrencesOfString:@" " withString:@""];
+        NSLog(@"1111========%@",createDate3);
+        NSLog(@"222222========%@",birthDay);
+        NSString *indexInIphone = [NSString stringWithFormat:@"%i",lookupforkey];
+       // iphoneContact.lookUpKey = [createDate3 stringByAppendingString:indexInIphone];
+        //上诉操作是将某个联系人的标识号与创建日期进行组合，得到唯一的标识，是为了当时特殊的需要，一般不会有这种变态应用，这是因为ABRecordGetRecordID在一个手机中是唯一的，即使删掉某一个联系人，这个号也不会在被占用。
+        
+        
+        
+        //读取联系人姓名属性
+        if (ABRecordCopyValue(person, kABPersonLastNameProperty)&&(ABRecordCopyValue(person, kABPersonFirstNameProperty))== nil) {
+           // iphoneContact.contactName = (__bridge NSString *)ABRecordCopyValue(person, kABPersonLastNameProperty);
+        }else if (ABRecordCopyValue(person, kABPersonLastNameProperty) == nil&&(ABRecordCopyValue(person, kABPersonFirstNameProperty))){
+           // iphoneContact.contactName = (NSString *)ABRecordCopyValue(person, kABPersonFirstNameProperty);
+        }else if (ABRecordCopyValue(person, kABPersonLastNameProperty)&&(ABRecordCopyValue(person, kABPersonFirstNameProperty))){
+            
+            NSString *first =(__bridge NSString *)ABRecordCopyValue(person, kABPersonFirstNameProperty);
+            NSString *last = (__bridge NSString *)ABRecordCopyValue(person, kABPersonLastNameProperty);
+          //  iphoneContact.contactName = [NSString stringWithFormat:@"%@%@",last,first];
+        }
+        //读取联系人姓名的第一个汉语拼音，用于排序，调用此方法需要在程序中加载pingyin.h pingyin.c,如有需要请给我联系。
+       // iphoneContact.pinyin =[[NSString stringWithFormat:@"%c",pinyinFirstLetter([iphoneContact.contactName characterAtIndex:0])] uppercaseString];
+        
+        
+        //读取联系人公司信息
+        
+       // iphoneContact.contactCompany = (NSString *)ABRecordCopyValue(person, kABPersonOrganizationProperty);
+        
+        //读取联系人工作
+       // iphoneContact.contactJob = (NSString *)ABRecordCopyValue(person, kABPersonJobTitleProperty);
+    }
+}
+-(void)clearData{
+    [arrFan removeAllObjects];
+    [tbFan reloadData];
+    [arrFollow removeAllObjects];
+    [tbFollow reloadData];
+    lblFans.text=@"私信";
+    lblFollow.text=@"消息";
+}
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+}
+
+#pragma mark - Click Events
+-(void)hideKeyWin
+{
+	[AppHelper hideKeyWindow];
+}
+
+
+-(void)clickBack{
+    [AppHelper hideKeyWindow];
+	[self.navigationController popViewControllerAnimated:YES];
+}
+
+-(void)clickSegment{
+    [self hideKeyWin];
+    CGFloat duration=0.10;
+    if (selectedIndex==0) {
+        [UIView animateWithDuration:duration animations:^{
+            btnSeg.frame=CGRectMake(118, 1, 116, 31);
+        }];
+        selectedIndex=1;
+        tbFollow.hidden=YES;
+        tbFan.hidden=NO;
+        if (arrFan.count==0) {
+            [self loadFanFromWeb];
+        }
+    }
+    else{
+        [UIView animateWithDuration:duration animations:^{
+            btnSeg.frame=CGRectMake(1, 1, 116, 31);
+        }];
+        selectedIndex=0;
+        tbFollow.hidden=NO;
+        tbFan.hidden=YES;
+        if (arrFollow.count==0) {
+            [self loadFollowFromWeb];
+        }
+    }
+}
+
+#pragma mark - TableView
+-(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
+    return 50.0;
+}
+
+-(NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
+    if (tbFan==tableView) {
+        return arrFan.count;
+    }
+    return arrFollow.count;
+}
+
+-(UITableViewCell*)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
+    static NSString* cellID=@"mycell";
+    static NSString* cellID2=@"mycell2";
+    if (tbFan==tableView) {
+        UserCell* cell=[tableView dequeueReusableCellWithIdentifier:cellID2];
+        if (!cell) {
+            cell=[[UserCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:cellID2];
+        }
+        int row=indexPath.row;
+        UserInfo* item=[arrFan objectAtIndex:row];
+        item.UserName = [NSString stringWithFormat:@"%@ 给你发了一个私信",item.SendName];
+        [cell loadData:item];
+        return cell;
+    }
+    else{
+        UserCell* cell=[tableView dequeueReusableCellWithIdentifier:cellID];
+        if (!cell) {
+            cell=[[UserCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:cellID];
+        }
+        int row=indexPath.row;
+        UserInfo* item=[arrFollow objectAtIndex:row];
+        [cell loadData:item];
+        return cell;
+    }
+}
+
+-(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+	int row=indexPath.row;
+    if (tableView==tbFan) {
+  
+    }
+    else{
+    
+    }
+}
+
+#pragma mark - Load Data
+-(void)loadFollowFromWeb{
+	NSString *userid=[NSString stringWithFormat:@"%d", [AppHelper getIntConfig:confUserId]] ;
+	ASIFormDataRequest* asirequest=[[ASIFormDataRequest alloc] initWithURL:[NSURL URLWithString:UrlBase]];
+    __weak ASIFormDataRequest *wrequest=asirequest;
+    asirequest.timeOutSeconds=90;
+    //    DLog(@"%@",dictInput);
+	[asirequest setPostValue:METHOD_MYPUSH forKey:@"method"];
+	[asirequest setPostValue:userid forKey:@"userid"];
+	[asirequest setPostValue:[AppHelper getStringConfig:confUserToken] forKey:@"token"];
+	[asirequest setPostValue:@"1" forKey:@"page"];
+	[asirequest setPostValue:@"10" forKey:@"pageCount"];
+    [asirequest setCompletionBlock:^{
+        NSString* respString=[wrequest responseString];
+        id JSON=[respString objectFromJSONString];
+        int code=[AppHelper getIntFromDictionary:JSON key:@"code"];
+        NSString* msg=[AppHelper getStringFromDictionary:JSON key:@"message"];
+        if (code==REQUEST_CODE_SUCCESS) {
+            id data=[JSON objectForKey:@"data"];
+			NSLog(@"data====%@",data);
+            [arrFollow removeAllObjects];
+            
+            for (NSDictionary *di in data) {
+				UserInfo* item=[[UserInfo alloc] initWithDict:di];
+                [arrFollow addObject:item];
+            }
+            if ([arrFollow count] == 0) {
+                [AppHelper showAlertMessage:@"无未读消息"];
+            }
+            [tbFollow reloadData];
+			lblFollow.text=[NSString stringWithFormat:@"消息"];
+        }
+        else{
+            [AppHelper showAlertMessage:msg];
+        }
+    }];
+    [asirequest setFailedBlock:^{
+        //        [AppHelper hideHUD:self.view];
+    }];
+    [asirequest startAsynchronous];
+	
+}
+
+-(void)loadFanFromWeb{
+    NSString *userid=[NSString stringWithFormat:@"%d", [AppHelper getIntConfig:confUserId]] ;
+    ASIFormDataRequest* asirequest=[[ASIFormDataRequest alloc] initWithURL:[NSURL URLWithString:UrlBase]];
+    __weak ASIFormDataRequest *wrequest=asirequest;
+    asirequest.timeOutSeconds=90;
+    //    DLog(@"%@",dictInput);
+	[asirequest setPostValue:METHOD_GETMESSAGE forKey:@"method"];
+	[asirequest setPostValue:userid forKey:@"userid"];
+	[asirequest setPostValue:[AppHelper getStringConfig:confUserToken] forKey:@"token"];
+	
+    [asirequest setCompletionBlock:^{
+        NSString* respString=[wrequest responseString];
+        id JSON=[respString objectFromJSONString];
+        int code=[AppHelper getIntFromDictionary:JSON key:@"code"];
+        NSString* msg=[AppHelper getStringFromDictionary:JSON key:@"message"];
+        NSLog(@"%@",JSON);
+        if (code==REQUEST_CODE_SUCCESS) {
+            id data=[JSON objectForKey:@"data"];
+			
+            NSLog(@"data===%@",data);
+            [arrFan removeAllObjects];
+            
+            for (NSDictionary *di in data) {
+				UserInfo* item=[[UserInfo alloc] initWithDict:di];
+                [arrFan addObject:item];
+            }
+            if ([arrFollow count] == 0) {
+                [AppHelper showAlertMessage:@"无未读私信"];
+            }
+            [tbFan reloadData];
+            lblFans.text=[NSString stringWithFormat:@"私信"];
+        }
+        else{
+            [AppHelper showAlertMessage:msg];
+        }
+    }];
+    [asirequest setFailedBlock:^{
+        //        [AppHelper hideHUD:self.view];
+    }];
+    [asirequest startAsynchronous];
+    
+	
+}
+
+@end

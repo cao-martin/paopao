@@ -1,0 +1,55 @@
+//
+// Prefix header for all source files of the 'charmgram' target in the 'charmgram' project
+//
+
+#import <Availability.h>
+#define _AFNETWORKING_PIN_SSL_CERTIFICATES_
+
+ 
+
+#if __IPHONE_OS_VERSION_MIN_REQUIRED
+    #ifndef __IPHONE_3_0
+        #warning "This project uses features only available in iPhone SDK 3.0 and later."
+    #endif
+
+    #ifdef __OBJC__
+        #import <UIKit/UIKit.h>
+        #import "Constants.h"
+        #import "AppHelper.h"
+		#import "HomeViewController.h"
+        #import <Foundation/Foundation.h>
+        #import <SystemConfiguration/SystemConfiguration.h>
+        #import <MobileCoreServices/MobileCoreServices.h> 
+		#import "ASIHTTPRequest.h"
+		#import "ASIFormDataRequest.h"
+		#import "AppDelegate.h"
+		#import "NSString+HXAddtions.h"
+		#import "NSStringAdditions.h"
+		#import "JSONKit.h"
+
+        #define kSinaAppKey         @"419321585"
+        #define kSinaAppSecret      @"d7005e6ac1778880d6dfbe2e0384688c"
+        #define kSinaRedirectURI    @"http://paopaobeauty.com"
+
+    #endif
+#else
+    #ifdef __OBJC__
+        #import <Cocoa/Cocoa.h>
+        #import "Constants.h"
+		#import "AppHelper.h"
+		#import "HomeViewController.h"
+        #import <SystemConfiguration/SystemConfiguration.h>
+        #import <CoreServices/CoreServices.h> 
+		#import "ASIHTTPRequest.h"
+        #import "ASIFormDataRequest.h"
+		#import "AppDelegate.h"
+		#import "NSString+HXAddtions.h"
+		#import "NSStringAdditions.h"
+		#import "JSONKit.h"
+
+        #define kSinaAppKey         @"419321585"
+        #define kSinaAppSecret      @"d7005e6ac1778880d6dfbe2e0384688c"
+        #define kSinaRedirectURI    @"http://paopaobeauty.com"
+
+    #endif
+#endif

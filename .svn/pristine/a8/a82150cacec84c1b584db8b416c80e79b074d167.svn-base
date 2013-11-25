@@ -1,0 +1,629 @@
+//
+//  HomeViewController.m
+//  charmgram
+//
+//  Created by Rui Wei on 13-3-25.
+//  Copyright (c) 2013年 Flashfresh. All rights reserved.
+//
+
+#import "HomeViewController.h"
+#import "SettingViewController.h"
+#import "NewSViewController.h"
+#import <QuartzCore/QuartzCore.h>
+#import "DetailViewController.h"
+#import "UIImageView+WebCache.h"
+#import "GiftViewController.h"
+#import "MoreGiftViewController.h"
+#import "FindFriendViewController.h"
+#define ANIMATED_DURATION   0.20
+
+@interface HomeViewController ()
+
+@end
+
+@implementation HomeViewController
+@synthesize timerCountDown;
+
++ (HomeViewController *)shared {
+    static HomeViewController *_shared = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        _shared = [[HomeViewController alloc] init];
+    });
+    
+    return _shared;
+}
+
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad]; 
+    self.view.backgroundColor=[UIColor whiteColor]; 
+    
+    menuController=[[MenuViewController alloc] init]; 
+    menuController.view.frame=CGRectMake(0, 0, kDeviceWidth, kDeviceHeight);
+	menuController.delegate=self;
+     [self.view addSubview:menuController.view];
+    [menuController.view setHidden:YES];
+    
+    friendController=[[FriendViewController alloc] init];
+    [self.view addSubview:friendController.view];
+    [friendController.view setHidden:YES];
+    friendController.view.frame=CGRectMake(kDeviceWidth-kFriendPanelWidth, 0, kDeviceWidth, kDeviceHeight);
+//	[friendController refreshData];
+    
+    contentView=[[UIView alloc] initWithFrame:CGRectMake(0, 0, kDeviceWidth, kDeviceHeight)];
+    contentView.backgroundColor=[UIColor whiteColor];
+    [self.view addSubview:contentView];
+    
+    contentView.layer.masksToBounds = NO;
+    contentView.layer.shadowColor = [UIColor blackColor].CGColor;
+    contentView.layer.shadowOffset = CGSizeMake(0.0f, 0.0f);
+    contentView.layer.shadowOpacity = 1.0f;
+    contentView.layer.shadowRadius = 2.5f;
+    contentView.layer.shadowPath = [UIBezierPath bezierPathWithRect:contentView.bounds].CGPath;
+ 
+    dongtaiController = [[TrendsViewController alloc] init];
+
+
+    
+    UserInfo *info = [UserInfo new];
+    info.UserId = [AppHelper getIntConfig:confUserId];
+    info.UserName = [AppHelper getStringConfig:confUserName];
+    info.AvatarURL = [AppHelper getStringConfig:confUserHeadUrl];
+    
+    faxianController = [[UserViewController alloc] init];
+    faxianController.curUserInfo = info;
+    faxianController.PlazaType = PLAZA_FAXIAN;
+    [faxianController pickPaoPao];
+//    faxianController = [[PlazaViewController alloc] initWithStyle:UITableViewStylePlain plazatype:PLAZA_FAXIAN];
+//	[faxianController refreshData];
+    
+    fujinController = [[PlazaViewController alloc] initWithStyle:UITableViewStylePlain plazatype:PLAZA_FUJIN];
+	[fujinController refreshData];
+    tabBarItems =[[NSArray alloc] initWithObjects:
+                  dongtaiController,
+                  faxianController,
+                  fujinController,
+                  nil];
+    for (int k=tabBarItems.count-1; k>=0; k--) {
+        UIViewController* controller =(UIViewController*) [tabBarItems objectAtIndex:k];
+        controller.view.frame = CGRectMake(0,36,contentView.bounds.size.width, contentView.bounds.size.height-99);
+        [contentView addSubview:controller.view];
+    }
+     
+	topSegment=[[TopSegmentBar alloc] initWithFrame:CGRectMake(0, 0, kDeviceWidth, 44)];
+//	[topSegment resetView:arrSeg];
+    [topSegment resetView:@[@"动态",@"发现",@"附近"]
+                 arrImage:@[@"segmental_mine",@"segmental_like",@"segmental_pin"] ];
+	topSegment.delegate=self;
+	[contentView addSubview:topSegment];
+	[topSegment setSelectedIndex:1 animated:NO];
+//    segments=[[SDSegmentedControl alloc] initWithItems:arrSeg];
+//    segments.frame=CGRectMake(0, 0, kDeviceWidth, 44);
+//    [segments setSelectedSegmentIndex:1];
+//    [segments addTarget:self action:@selector(didChangeSegment ) forControlEvents:UIControlEventValueChanged];
+//    [contentView addSubview:segments];
+    paopaoVc = [[UserViewController alloc] init];
+    paopaoVc.PlazaType = PLAZA_FAXIAN;
+   // paopaoVc.view.backgroundColor = [UIColor redColor];
+    paopaoVc.view.frame = CGRectMake(0,0,contentView.bounds.size.width, contentView.bounds.size.height-63);
+    [contentView addSubview:paopaoVc.view];
+    [paopaoVc pickPaoPao];
+    botBar = [[BottomTabBar alloc] initWithFrame:CGRectMake(0, kDeviceHeight-64, kDeviceWidth, 44)];
+    botBar.delegate=self;
+    [contentView addSubview:botBar];
+//    [self changeTab:0];
+    
+    maskView=[[UIView alloc] initWithFrame:CGRectMake(0, 0, kDeviceWidth, kDeviceHeight)];
+    maskView.backgroundColor=[UIColor clearColor];//[UIColor colorWithWhite:0 alpha:0.2];
+    maskView.hidden=YES;
+    UITapGestureRecognizer* tapmask=[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(clickMask)];
+    tapmask.numberOfTapsRequired=1;
+    tapmask.numberOfTouchesRequired=1;
+    [maskView addGestureRecognizer:tapmask];
+    
+    UIPanGestureRecognizer* panMask=[[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(panMask:)];
+    [maskView addGestureRecognizer:panMask];
+    
+    [contentView addSubview:maskView];
+	
+	[self initObservers];
+	[self changeTab:1];
+	[self initPreview];
+}
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning]; 
+}
+
+-(void)viewDidAppear:(BOOL)animated{
+    [super viewDidAppear:animated];
+    
+}
+
+-(void)viewDidLayoutSubviews{
+    [super viewDidLayoutSubviews];
+    friendController.view.frame=CGRectMake(kDeviceWidth-kFriendPanelWidth, 0, kDeviceWidth, kDeviceHeight);
+    
+}
+
+-(void)viewWillAppear:(BOOL)animated{
+	[botBar resetBar:[AppHelper isValidatedUser]];
+    paopaoVc.view.hidden = [AppHelper isValidatedUser];
+	[menuController resetMenu];
+	[super viewWillAppear:animated];
+}
+
+-(void)initObservers{
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(becomeActive)
+                                                 name:UIApplicationDidBecomeActiveNotification
+                                               object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(resignActive)
+                                                 name:UIApplicationWillResignActiveNotification
+                                               object:nil];
+}
+
+-(void)initPreview{
+	bgPreview=[[UIView alloc] initWithFrame:CGRectMake(0, 0, kDeviceWidth, kDeviceHeight-20)];
+    bgPreview.backgroundColor=[UIColor colorWithWhite:0 alpha:1.0];
+    [bgPreview setHidden:YES];
+	
+	imgPreview=[[UIImageView alloc] initWithFrame:CGRectMake(0, 0, kDeviceWidth, kDeviceHeight-20)];
+    [imgPreview setContentMode:UIViewContentModeScaleAspectFit];
+	[bgPreview addSubview:imgPreview];
+	
+	btnTimer=[UIButton buttonWithType:UIButtonTypeCustom];
+    [btnTimer setFrame:CGRectMake(kDeviceWidth-45, 36, 33, 30)];
+    [btnTimer setBackgroundImage:[UIImage imageNamed:@"countdown_mask"] forState:UIControlStateNormal];
+    [btnTimer setBackgroundImage:[UIImage imageNamed:@"countdown_mask"] forState:UIControlStateHighlighted];
+    [btnTimer setTitle:@"10秒" forState:UIControlStateNormal];
+    btnTimer.titleLabel.textColor=[UIColor whiteColor];
+    btnTimer.titleLabel.font=[UIFont boldSystemFontOfSize:14.0];
+    [bgPreview addSubview:btnTimer];
+	
+	[self.view addSubview:bgPreview];
+}
+
+
+
+#pragma mark - Segments
+-(void)didChangeSegment:(int)index {
+    [self changeTab:index];
+}
+
+-(void)changeTab:(int)index{
+    
+	if (index>tabBarItems.count-1) {
+		return;
+	}
+    if (!paopaoVc.view.hidden) {
+        paopaoVc.view.hidden = YES;
+    }
+    
+    if (topSegment.selectedSegmentIndex!=index) {
+        [topSegment setSelectedIndex:index animated:NO];
+    }
+	
+    UIViewController<TabItemDelegate>* controller =(UIViewController<TabItemDelegate>*) [tabBarItems objectAtIndex:index];
+    
+    if (controller && [controller conformsToProtocol:@protocol(TabItemDelegate)]) {
+        [controller refreshData];
+    }
+	//    [contentView addSubview:controller.view];
+    [contentView insertSubview:controller.view belowSubview:topSegment];
+}
+
+-(void)didLogout{
+    paopaoVc.view.hidden = NO;
+	for (int k=0; k<tabBarItems.count; k++) {
+		UIViewController<TabItemDelegate>* controller =(UIViewController<TabItemDelegate>*) tabBarItems[k];
+		
+		if (controller && [controller conformsToProtocol:@protocol(TabItemDelegate)]) {
+			[controller clearData];
+		}
+	}
+   // [AppHelper setStringConfig:confUserCoin val:@""];
+    [AppHelper setIntConfig:confUserId val:0];
+    [friendController clearData];
+    [paopaoVc clearData];
+}
+
+#pragma mark - Click Bottom Menu
+-(void)clickMask{
+    [self resetMe:YES];
+}
+
+-(void)panMask:(UIPanGestureRecognizer*)gesture{
+ 
+    if (isAutoResetting) {
+        return;
+    }
+	[friendController hideKeyWin];
+    CGPoint curPoint=[gesture locationInView:self.view];
+    CGFloat curX=curPoint.x;
+    
+    CGPoint curViewPoint=[gesture locationInView:gesture.view];
+    CGFloat curViewX=curViewPoint.x;
+    switch (gesture.state) {
+        case UIGestureRecognizerStateBegan:
+        {
+            panStartX = curViewX;
+        }
+            break;
+        case UIGestureRecognizerStateChanged:
+        {
+//            DLog(@"panStartX - %f; curX - %f; kMenuPanelWidth- %f; curViewX- %f",
+//                 panStartX,curX,kMenuPanelWidth,curViewX);
+//            contentView.transform=CGAffineTransformMakeTranslation(curPoint.x-panStartX,0);
+//            contentView.frame=CGRectMake(curPoint.x, 0, kDeviceWidth, kDeviceHeight);
+            if (isShowMenu && curX-panStartX<kMenuPanelWidth ) {
+                CGRect newframe=contentView.frame;
+                newframe.origin.x=curX-panStartX;
+                contentView.frame=newframe;
+            }
+            if (isShowFriend && panStartX-curX<kFriendPanelWidth) {
+                CGRect newframe=contentView.frame;
+                newframe.origin.x=curX-panStartX;
+                contentView.frame=newframe;
+            }
+        }
+            break;
+        default:
+        {
+            if (isShowMenu) {
+                isAutoResetting=YES;
+                CGRect newframe=contentView.frame;
+                CGFloat originX=newframe.origin.x;
+                BOOL needReset=(kMenuPanelWidth-originX>kPanPanelDistance);
+                newframe.origin.x=(needReset)?0.0:kMenuPanelWidth;
+                
+                [UIView animateWithDuration:ANIMATED_DURATION-0.05 animations:^{
+                    contentView.frame=newframe;
+                } completion:^(BOOL finished) {
+                    isShowMenu=!needReset;
+                    isAutoResetting=NO;
+                    maskView.hidden=needReset;
+                    menuController.view.hidden=needReset;
+                }];
+            }
+            if (isShowFriend) {
+                isAutoResetting=YES;
+                CGRect newframe=contentView.frame;
+                CGFloat originX=newframe.origin.x;
+                BOOL needReset=(originX+kFriendPanelWidth>kPanPanelDistance);
+                DLog(@"originX - %f",originX);
+                newframe.origin.x=(needReset)?0.0:-kFriendPanelWidth;
+                
+                [UIView animateWithDuration:ANIMATED_DURATION-0.05 animations:^{
+                    contentView.frame=newframe;
+                } completion:^(BOOL finished) {
+                    isShowFriend=!needReset;
+                    isAutoResetting=NO;
+                    maskView.hidden=needReset;
+                    friendController.view.hidden=needReset;
+                }];
+            }
+        }
+            break;
+    } 
+}
+ 
+-(void)clickBottomTabBar:(int)index{
+    NSLog(@"%s - Index: %d",__func__,index);
+    switch (index) {
+        case 9:
+        {
+            EntryViewController* controller=[[EntryViewController alloc] init];
+            [self.navigationController pushViewController:controller animated:YES];
+        }
+            break;
+        case 0:
+        { 
+            if (![AppHelper isValidatedUser]) {
+                return;
+            }
+            isShowMenu=!isShowMenu;
+			[self showMenu:YES];
+        }
+            break;
+		case 1:
+		{
+			if (![AppHelper isValidatedUser]) {
+                return;
+            }
+			IFFiltersViewController *filtersViewController = [[IFFiltersViewController alloc] init];
+			filtersViewController.uploadDelegate=tabBarItems[0];
+            filtersViewController.shouldLaunchAsAVideoRecorder = NO;
+            filtersViewController.shouldLaunchAshighQualityVideo = NO;
+			[[UIApplication sharedApplication] setStatusBarHidden:YES withAnimation:UIStatusBarAnimationFade];
+            [self presentViewController:filtersViewController animated:YES completion:nil];
+//			[self presentViewController:filtersViewController animated:YES completion:^(){
+//				filtersViewController = nil;
+//			}];
+		}
+			break;
+        case 2:
+        {
+            if (![AppHelper isValidatedUser]) {
+                return;
+            }
+            isShowFriend=!isShowFriend;
+            [self showFriend:YES];
+        }
+            break;
+        default:
+            break;
+    }
+}
+
+-(void)showMenu:(BOOL)animated{
+	[friendController.view setHidden:YES];
+	[menuController.view setHidden:NO]; 
+    CGRect newFrame=contentView.frame;
+	if(isShowMenu){ 
+        newFrame.origin.x=kMenuPanelWidth;
+	}
+	else{
+        newFrame.origin.x=0;
+	}
+	if (animated) {
+		[UIView animateWithDuration:ANIMATED_DURATION delay:0.0
+							options:UIViewAnimationOptionCurveEaseOut
+						 animations:^{
+							 contentView.frame=newFrame;
+						 } completion:^(BOOL finished) {
+							 if (!isShowMenu) {
+								 [menuController.view setHidden:YES];
+							 }
+                             maskView.hidden=!isShowMenu;
+						 }];
+	}
+	else{
+		contentView.frame=newFrame;
+		if (!isShowMenu) {
+			[menuController.view setHidden:YES];
+		}
+        maskView.hidden=!isShowMenu;
+	}
+}
+
+-(void)showFriend:(BOOL)animated{ 
+	[friendController hideKeyWin];
+	[friendController.view setHidden:NO];
+	[friendController refreshData]; 
+	[menuController.view setHidden:YES];
+	CGRect newFrame=contentView.frame;
+	if(isShowFriend){
+        newFrame.origin.x=-kFriendPanelWidth; 
+	}
+	else{
+		newFrame.origin.x=0;
+	}
+	if (animated) {
+		[UIView animateWithDuration:ANIMATED_DURATION delay:0.0
+							options:UIViewAnimationOptionCurveEaseOut
+						 animations:^{
+							 contentView.frame=newFrame;
+						 } completion:^(BOOL finished) {
+							 if (!isShowFriend) {
+								 [friendController.view setHidden:YES];
+							 }
+                             maskView.hidden=!isShowFriend;
+						 }];
+	}
+	else{
+		contentView.frame=newFrame;
+		if (!isShowFriend) {
+			[friendController.view setHidden:YES];
+		}
+        maskView.hidden=!isShowFriend;
+	}
+}
+
+#pragma mark - MenuDelegate
+-(void)clickMenuSetting{
+	SettingViewController* controller=[[SettingViewController alloc] init];
+	[self.navigationController pushViewController:controller animated:YES];
+//    [self resetMe:NO];
+    [self performSelector:@selector(resetMe:) withObject:NO afterDelay:0.6];
+} 
+-(void)clickMenuNew{
+	NewSViewController* controller=[[NewSViewController alloc] init];
+	[self.navigationController pushViewController:controller animated:YES];
+    //    [self resetMe:NO];
+    [self performSelector:@selector(resetMe:) withObject:NO afterDelay:0.6];
+}
+#pragma mark - BubbleCell Delegate
+-(void)CellStateChanged:(NSDictionary*)dict{
+	
+//	int index=[[dict objectForKey:@"index"] integerValue];
+//	NSString* state=[dict objectForKey:@"state"];
+	
+	/*
+	PrivateImage* item=(PrivateImage*) arrData[index];
+	switch ([state integerValue]) {
+		case 0:
+		{
+//			if (cartBar.hidden) {
+//				[self showCartBar];
+//			}
+			item.State=PrivateImageStateNormal;
+//			selectedCount--;
+//			if (selectedCount<0) {
+//				selectedCount=0;
+//			}
+//			selectedAmount-=10;
+//			if (selectedAmount<0) {
+//				selectedAmount=0;
+//			}
+		}
+			break;
+			
+		case 1:
+		{
+//			if (cartBar.hidden) {
+//				[self showCartBar];
+//			}
+			item.State=PrivateImageStateSelected;
+//			selectedCount++;
+//			selectedAmount+=10;
+		}
+			break;
+		case 3:
+		{
+			item.State=PrivateImageStateDownloaded;
+		}
+			break;
+	}
+	*/
+	
+//	lblSelectedCount.text=[NSString stringWithFormat:@"选择图片\n%d",selectedCount];
+//	lblSelectedAmount.text=[NSString stringWithFormat:@"需支付靓点\n%d",selectedAmount];
+}
+
+-(void)CellLongPressBegan:(NSDictionary*)dict{
+	NSString* url=[dict objectForKey:@"url"];
+	int second=[[dict objectForKey:@"second"] integerValue];
+	curCellTag=[[dict objectForKey:@"tag"] integerValue];
+	curCellCol=[[dict objectForKey:@"col"] integerValue];
+	int curCellId = [[dict objectForKey:@"curId"] integerValue];
+	[btnTimer setTitle:[NSString stringWithFormat:@"%d秒",second] forState:UIControlStateNormal];
+	bgPreview.hidden=NO;
+//	imgPreview.image=[UIImage imageWithContentsOfFile:url];
+    [imgPreview setImageWithURL:[NSURL URLWithString:url]];
+	
+	if (self.timerCountDown) {
+		[self.timerCountDown invalidate];
+	}
+  int  userId =  [AppHelper getIntConfig:confUserId];
+    if (curCellId != userId) {
+        self.timerCountDown=[NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(showTimer) userInfo:nil repeats:YES];
+    }
+	
+}
+
+-(void)CellLongPressEnded:(NSDictionary*)dict{
+//	if (self.timerCountDown) {
+//		[self.timerCountDown invalidate];
+//	}
+	[self changeLblSec];
+	bgPreview.hidden=YES;
+}
+
+-(void)CellLongPressCancelled:(NSDictionary*)dict{
+	if (self.timerCountDown) {
+		[self.timerCountDown invalidate];
+	}
+	[self changeLblSec];
+	bgPreview.hidden=YES;
+}
+
+-(void)changeLblSec{
+	if (curCellTag>0) {
+		int second=[[btnTimer.titleLabel.text stringByReplacingOccurrencesOfString:@"秒" withString:@""] intValue];
+		[dongtaiController changeLblSec:second celltag:curCellTag];
+	}
+}
+ 
+
+#pragma mark - Timer
+-(void)showTimer{
+	if (bgPreview.hidden) {
+        [self changeLblSec];
+		//return;
+	}
+	int second=[[btnTimer.titleLabel.text stringByReplacingOccurrencesOfString:@"秒" withString:@""] intValue];
+	second--;
+	if (second<=0) {
+		[btnTimer setTitle:@"0秒" forState:UIControlStateNormal];
+        if (self.timerCountDown) {
+            [self.timerCountDown invalidate];
+        }
+		[self changeLblSec];
+		bgPreview.hidden=YES;
+		return;
+	}
+	else{
+		[btnTimer setTitle:[NSString stringWithFormat:@"%d秒",second] forState:UIControlStateNormal];
+	}
+}
+
+
+#pragma mark - Notification
+-(void)becomeActive{
+
+}
+
+-(void)resignActive{
+
+}
+
+-(void)resetMe:(BOOL)animated{
+    if (isShowMenu) {
+        isShowMenu=NO;
+        [self showMenu:animated];
+    }
+    if (isShowFriend) {
+        isShowFriend=NO;
+        [self showFriend:animated];
+    }
+    [botBar resetBar:YES];
+    maskView.hidden=YES;
+}
+
+-(void)gotoDetailView:(PrivateImage*)info{
+	if ([AppHelper isValidatedUser]) {
+		DetailViewController* controller=[[DetailViewController alloc] init];
+		controller.curInfo=info;
+		controller.bubbleDelegate=self;
+		[self.navigationController pushViewController:controller animated:YES];
+	}
+}
+
+-(void)gotoUserViewByImageInfo:(PrivateImage*)info{
+	if ([AppHelper isValidatedUser]) {
+		UserViewController* controller=[[UserViewController alloc] init];
+		controller.curUserInfo=[[UserInfo alloc] init];
+		controller.curUserInfo.UserId=info.UserId;
+		controller.curUserInfo.AvatarURL=info.AvatarUrl;
+		controller.curUserInfo.UserName=info.UserName;
+		[self.navigationController pushViewController:controller animated:YES];
+//		DetailViewController* controller=[[DetailViewController alloc] init];
+//		controller.curInfo=info;
+//		[self.navigationController pushViewController:controller animated:YES];
+	}
+}
+-(void)gotoFriendView:(int)mode{
+    FindFriendViewController *findFirind = [[FindFriendViewController alloc] init];
+    [self.navigationController  pushViewController:findFirind animated:YES];
+}
+-(void)gotoUserView:(UserInfo*)info{
+	if ([AppHelper isValidatedUser]) {
+		UserViewController* controller=[[UserViewController alloc] init];
+		controller.curUserInfo=info;
+		[self.navigationController pushViewController:controller animated:YES]; 
+	}
+}
+-(void)gotoGiftView:(PrivateImage *)info{
+    GiftViewController* controller=[[GiftViewController alloc] init];
+    controller.curInfo=info;
+    [[HomeViewController shared] presentViewController:controller animated:YES completion:nil];
+}
+-(void)gotoMoreGiftView:(PrivateImage *)info{
+    MoreGiftViewController* controller=[[MoreGiftViewController alloc] init];
+    controller.curInfo=info;
+    //[[HomeViewController shared] presentViewController:controller animated:YES completion:nil];
+    [self.navigationController pushViewController:controller animated:YES]; 
+}
+-(void)notificationCustom:(NSNotification*)notification{
+    int noticeID=[[notification.userInfo objectForKey:NOTIFICATION_KEYNAME] intValue];
+    switch (noticeID) {   
+		default:
+			break;
+	}
+}
+@end

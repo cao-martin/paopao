@@ -1,0 +1,308 @@
+//
+//  SettingViewController.m
+//  charmgram
+//
+//  Created by Rui Wei on 13-4-5.
+//  Copyright (c) 2013年 Flashfresh. All rights reserved.
+//
+
+#import "SettingViewController.h"
+#import <QuartzCore/QuartzCore.h>
+#import "UIImage+UIImageExt.h"
+#import "NotSetViewController.h"
+@interface SettingViewController ()
+
+@end
+
+@implementation SettingViewController
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+	UIView *topbar=[[UIView alloc] initWithFrame:CGRectMake(0, 0, kDeviceWidth, kTopbarHeight)];
+    topbar.backgroundColor=[UIColor colorWithPatternImage:[UIImage imageNamed:@"header_base"]];
+    [self.view addSubview:topbar];
+    
+    UILabel* lblTitle=[[UILabel alloc] initWithFrame:CGRectMake(0, 10, kDeviceWidth, 24)];
+    lblTitle.textAlignment=UITextAlignmentCenter;
+    lblTitle.backgroundColor=[UIColor clearColor];
+    lblTitle.textColor=[UIColor whiteColor];
+    lblTitle.text=@"设置";
+    lblTitle.font=[UIFont boldSystemFontOfSize:20.0];
+    [topbar addSubview:lblTitle];
+	
+	UIButton *btnCancel=[UIButton buttonWithType:UIButtonTypeCustom];
+    [btnCancel setBackgroundImage:[UIImage imageNamed:@"header_btn_back_off"] forState:UIControlStateNormal];
+    [btnCancel setBackgroundImage:[UIImage imageNamed:@"header_btn_back_on"] forState:UIControlStateHighlighted];
+    btnCancel.frame=CGRectMake(8, 0, 54,44);
+    [btnCancel addTarget:self action:@selector(clickBack) forControlEvents:UIControlEventTouchUpInside];
+    [topbar addSubview:btnCancel];
+	
+	tbInput=[[UITableView alloc] initWithFrame:CGRectMake(0, kTopbarHeight, kDeviceWidth, kDeviceHeight-kTopbarHeight-20) style:UITableViewStyleGrouped];
+	tbInput.backgroundColor=[UIColor whiteColor];
+	tbInput.backgroundView=nil;
+	tbInput.dataSource=self;
+	tbInput.delegate=self;
+	[self.view addSubview:tbInput];
+	hasAvatarImage = NO;
+	[self initArray];
+}
+
+-(void)initArray{
+	arrCaption=[[NSMutableArray alloc] initWithCapacity:0];
+	[arrCaption addObject:[NSDictionary dictionaryWithObjectsAndKeys:@"用户名",@"caption",@"label",@"type", [AppHelper getStringConfig:confUserName], @"value",nil]];
+	[arrCaption addObject:[NSDictionary dictionaryWithObjectsAndKeys:@"个人头像",@"caption",@"avatar",@"type",[AppHelper AvatarPath], @"value", nil]];
+	[arrCaption addObject:[NSDictionary dictionaryWithObjectsAndKeys:@"购买靓点",@"caption",@"label",@"type", @"", @"value",nil]];
+    [arrCaption addObject:[NSDictionary dictionaryWithObjectsAndKeys:@"推送设置",@"caption",@"label",@"type", @"", @"value",nil]];
+
+	[arrCaption addObject:[NSDictionary dictionaryWithObjectsAndKeys:@"退出登录",@"caption",@"logout",@"type", @"", @"value",nil]];
+}
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+#pragma mark - Tableview Delegate
+-(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
+	return 44.0;
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
+	return [arrCaption count];
+}
+
+-(UITableViewCell*) tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
+	static NSString* cellId=@"mycell";
+	UITableViewCell *cell=[tableView dequeueReusableCellWithIdentifier:cellId];
+	if (!cell) {
+		cell=[[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:cellId];
+	}
+	cell.selectionStyle=UITableViewCellSelectionStyleGray ;
+	int row=indexPath.row;
+	NSDictionary* dict=(NSDictionary*)[arrCaption objectAtIndex:row];
+	cell.textLabel.text=[NSString stringWithFormat:@" %@",  [dict objectForKey:@"caption"]];
+	cell.textLabel.textAlignment=UITextAlignmentLeft;
+	cell.textLabel.font=[UIFont boldSystemFontOfSize:18.0];
+    if (indexPath.row != 0) {
+        cell.accessoryType=UITableViewCellAccessoryDisclosureIndicator;
+    }
+	
+	NSString* ctype=[dict objectForKey:@"type"];
+	NSString* val=[dict objectForKey:@"value"];
+	if ([ctype isEqualToString:@"label"]) {
+		UILabel * lbl=[[UILabel alloc] initWithFrame:CGRectMake(100, 2, 170, 40)];
+		lbl.text=val;
+		lbl.backgroundColor=[UIColor clearColor];
+		lbl.font=[UIFont systemFontOfSize:16.0];
+		lbl.textColor=[UIColor colorWithRed:30/255.0 green:83/255.0 blue:126/255.0 alpha:1.0];
+		lbl.textAlignment=UITextAlignmentRight;
+//    	lbl.layer.shadowOffset = CGSizeMake(1, 0);
+//    	lbl.layer.shadowColor = [UIColor blackColor].CGColor;
+//    	lbl.layer.shadowOpacity = 1.0;
+		[cell.contentView addSubview:lbl];
+	}
+	if ([ctype isEqualToString:@"avatar"]) {
+		 img=[[UIImageView alloc] initWithImage:[UIImage imageNamed:@"user_noimage"]];
+		img.frame=CGRectMake(234, 4, 36, 36);
+		img.layer.cornerRadius=2.0;
+ 		img.layer.masksToBounds = YES;
+		img.contentMode=UIViewContentModeScaleToFill;
+		if (val.length>0) {
+			if ([val hasPrefix:@"/"]) {
+				img.image=[UIImage imageWithContentsOfFile:val];
+			}
+			else{
+				img.image=[UIImage imageNamed:val];
+			}
+		}
+		
+		[cell.contentView addSubview:img];
+	}
+//    if ([ctype isEqualToString:@"uiswich"]) {
+//		UISwitch *notSwitch = [[UISwitch alloc] initWithFrame:CGRectMake(200, 7, 70, 30)];
+//        notSwitch.on = [[AppHelper getStringConfig:confNotOn] boolValue];
+//        [cell.contentView addSubview:notSwitch];
+//	}
+	return cell;
+}
+
+-(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
+	[tableView deselectRowAtIndexPath:indexPath animated:YES];
+	int row=indexPath.row;
+	NSDictionary* dict=(NSDictionary*)[arrCaption objectAtIndex:row];
+	NSString* ctype=[dict objectForKey:@"type"];
+	switch (row) {
+        case 1:
+		{
+        	UIActionSheet *sheet = [[UIActionSheet alloc]
+                                    initWithTitle:@"选择头像"
+									delegate:self
+                                    cancelButtonTitle:@"取消"
+                                    destructiveButtonTitle:nil
+                                    otherButtonTitles:@"拍照",@"从相册中选取",nil];
+            sheet.tag = 101;
+            [sheet showInView:self.view];
+
+
+			
+		}
+			break;
+		case 2:
+		{
+			PurchaseViewController* controller=[[PurchaseViewController alloc] init];
+			[self.navigationController pushViewController:controller animated:YES];
+			
+		}
+			break;
+            
+        case 3:
+		{
+            
+			NotSetViewController *controller = [[NotSetViewController alloc] init];
+            [self.navigationController pushViewController:controller animated:YES];
+		}
+			break;
+
+			
+		default:
+			break;
+	}
+	if ([ctype isEqualToString:@"logout"]) {
+		[self clickLogout];
+	}
+}
+
+#pragma mark - Click Events
+-(void)clickLogout{
+	UIActionSheet *sheet = [[UIActionSheet alloc]
+							initWithTitle:@"你确定要退出登录吗？"
+							delegate:self
+							cancelButtonTitle:@"取消"
+							destructiveButtonTitle:@"退出登录"
+							otherButtonTitles:nil];
+    sheet.tag = 100;
+	[sheet showInView:self.view];
+}
+#pragma mark - Click Action Sheet
+-(void)actionSheet:(UIActionSheet *)actionSheet clickedButtonAtIndex:(NSInteger)buttonIndex{
+    if (actionSheet.tag == 100) {
+        switch (buttonIndex) {
+            case 0:
+            {
+                [AppHelper setStringConfig:confUserName val:@""];
+                [AppHelper setStringConfig:confUserEmail val:@""];
+                [AppDelegate App].watchCount = 0;
+                NSString* savedPath=[AppHelper AvatarPath];
+                if ([[NSFileManager defaultManager] fileExistsAtPath:savedPath]) {
+                    [[NSFileManager defaultManager] removeItemAtPath:savedPath error:nil];
+                }
+                [[HomeViewController shared] resetMe:NO];
+                [[HomeViewController shared] didLogout];
+                [self clickBack];
+            }
+                break;
+                
+            default:
+                break;
+        }
+    }else{
+        switch (buttonIndex) {
+                
+            case 0:
+            {
+                //拍摄照片
+                UIImagePickerControllerSourceType sourceType = UIImagePickerControllerSourceTypeCamera;
+                if ([UIImagePickerController isSourceTypeAvailable:sourceType]) {
+                    UIImagePickerController *picker = [[UIImagePickerController alloc] init];
+                    picker.delegate = self;
+                    picker.allowsEditing = YES;
+                    picker.sourceType = sourceType;
+                    [self presentModalViewController:picker animated:NO];
+                }
+                else {
+                    [AppHelper showAlertMessage:@"你的设备没有相机" title:@"提示"];
+                }
+            }
+                break;
+            case 1:
+            {
+                //从图片库中选择
+                UIImagePickerControllerSourceType sourceType = UIImagePickerControllerSourceTypePhotoLibrary;
+                UIImagePickerController *picker = [[UIImagePickerController alloc] init];
+                picker.delegate = self;
+                picker.allowsEditing = YES;
+                picker.sourceType = sourceType;
+                [self presentModalViewController:picker animated:NO];
+            }
+                break;
+            default:
+                break;
+        }
+    }
+ 
+}
+#pragma mark - UIImagePickerController delegate
+
+- (void)saveImage:(UIImage *)vimage{
+	NSString* savedPath=[AppHelper AvatarPath];
+	UIImage* scalImage2 = [vimage imageByScalingAndCroppingForSize:CGSizeMake(120, 120)];
+	[UIImageJPEGRepresentation(scalImage2, 0.9f) writeToFile:savedPath atomically:YES];
+    [img setImage:[UIImage imageWithContentsOfFile:savedPath]];
+    hasAvatarImage = YES;
+    [self uploadImageHead:nil];
+}
+
+- (void)imagePickerController:(UIImagePickerController *)picker didFinishPickingMediaWithInfo:(NSDictionary *)info {
+    [picker dismissModalViewControllerAnimated:YES];
+    
+    UIImage *image = [info objectForKey:UIImagePickerControllerEditedImage];
+    [self performSelector:@selector(saveImage:)
+               withObject:image
+               afterDelay:0.5];
+}
+- (void)imagePickerControllerDidCancel:(UIImagePickerController *)picker {
+	
+    [picker dismissModalViewControllerAnimated:NO];
+    
+}
+
+-(void)uploadImageHead:(UIImage *)headImg{
+    ASIFormDataRequest* asirequest=[[ASIFormDataRequest alloc] initWithURL:[NSURL URLWithString:UrlBase]];
+    __weak ASIHTTPRequest *wrequest=asirequest;
+    asirequest.timeOutSeconds=20;
+    [asirequest setPostValue:METHOD_UPDATEHEADIMG forKey:@"method"];
+    [asirequest setPostValue:[NSString stringWithFormat:@"%d", [AppHelper getIntConfig:confUserId]] forKey:@"userid"];
+	[asirequest setPostValue:[AppHelper getStringConfig:confUserToken] forKey:@"token"];
+    [asirequest setPostValue:@"" forKey:@"mobile"];
+    if (hasAvatarImage) {
+        [asirequest setFile:[AppHelper AvatarPath] withFileName:@"pic.jpg" andContentType:@"image/jpeg" forKey:@"upfile"];
+    }
+    
+    [asirequest setCompletionBlock:^{
+        NSString* respString=[wrequest responseString];
+        id JSON=[respString objectFromJSONString];
+        int code=[AppHelper getIntFromDictionary:JSON key:@"code"];
+        NSString* msg=[AppHelper getStringFromDictionary:JSON key:@"message"];
+        [AppHelper hideHUD:self.view];
+        if (code==REQUEST_CODE_SUCCESS) {
+          
+           // [self.navigationController popToRootViewControllerAnimated:YES];
+            [AppHelper showAlertMessage:@"头像修改成功"];
+        }
+        else{
+            [AppHelper showAlertMessage:msg];
+        }
+    }];
+    [asirequest setFailedBlock:^{
+        [AppHelper hideHUD:self.view];
+    }];
+    [asirequest startAsynchronous];
+    
+}
+
+-(void)clickBack{
+	[self.navigationController popToRootViewControllerAnimated:YES];
+}
+@end

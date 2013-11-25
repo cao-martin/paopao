@@ -1,0 +1,22 @@
+//
+//  MoreGiftViewController.h
+//  charmgram
+//
+//  Created by martin on 13-8-10.
+//  Copyright (c) 2013年 Flashfresh. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "PrivateImage.h"
+@interface MoreGiftViewController : UIViewController<UITableViewDataSource,UITableViewDelegate>{
+    NSMutableArray* arrItem;
+    UITableView* tbGift;
+    
+    
+    UIView* header;
+	UIImageView* imgDetail;
+	UIImageView* imgAvatar;
+    UILabel* lblName;
+}
+@property(nonatomic,strong)PrivateImage *curInfo;
+@end
